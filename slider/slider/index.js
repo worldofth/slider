@@ -1,159 +1,123 @@
-import { setupState } from './state'
-import { setupBus, setupEvents, setupEarlyEvents } from './events'
 import {
-    Arrows,
-    HorizontalSlide,
-    Dots,
-    KeyNavigation,
-    InfiniteSlides,
-    NavFor,
-    AutoPlay,
-    PauseOnHover,
-    PauseOnArrows,
-    PauseOnDots,
-    Fade,
-    ActiveClasses,
-    TimerTracker,
-    Swipe,
-    BackgroundColor,
-    ButtonLink
-} from './plugins'
-import { getCurrentSlide, getPreviousSlide, busTrack } from './util'
-
-const SliderObj = {
-    config: {
-        options: {},
-        responsiveOptions: {},
-        breakpoints: [],
-        classes: {}
-    },
-    state: {},
-    bus: {},
-    events: {},
-    plugins: [
-        Arrows,
-        Dots,
-        KeyNavigation,
-        HorizontalSlide,
-        InfiniteSlides,
-        NavFor,
-        AutoPlay,
-        PauseOnHover,
-        PauseOnArrows,
-        PauseOnDots,
-        Fade,
-        ActiveClasses,
-        TimerTracker,
-        Swipe,
-        BackgroundColor,
-        ButtonLink
-    ],
-    pluginState: {},
-    busTrack,
-    getCurrentSlide,
-    getPreviousSlide
-}
-
-const SliderState = {
-    elements: null,
-    initialised: false,
-    previousSlide: 0,
-    currentSlide: 0,
-    slideCount: 0,
-    totalSlideCount: 0, // includes cloned slides
-    currentBreakpoint: 0,
-    maxSlidePosition: 0,
-    minSlidePosition: 0,
-    slidePositionOffset: 0
-}
-
-window.sliders = []
+    SliderObj,
+    ConfigObj,
+    StateObj,
+    ElementObj,
+    BusObj,
+    EventsObj,
+    TriggersObj,
+    setupConfig
+} from './state'
+import { setupEvents } from './events'
 
 export function Slider(selector, config = {}) {
-    const Obj = Object.create(SliderObj)
-    Obj.state = Object.create(SliderState)
+    const Obj = Object.assign({}, SliderObj)
+
+    Obj.config = Object.assign({}, ConfigObj)
+    Obj.state = Object.assign({}, StateObj)
+    Obj.elements = Object.assign({}, ElementObj)
+
+    Obj.bus = Object.assign({}, BusObj)
+    Obj.bus.triggers = Object.assign({}, TriggersObj)
+    Obj.bus.events = Object.assign({}, EventsObj)
+
+    Obj.plugins = []
+    Obj.pluginState = {}
+
     init.call(Obj, selector, config)
-    window.sliders.push(Obj)
     return Obj
 }
 
-function init(selector, config) {
+function init(selector, config = {}) {
     let el = selector
     if (typeof selector === 'string') {
         el = document.querySelector(selector)
     }
 
     if (!el) {
+        console.warn('No slider container was found')
         return
     }
 
-    if (!el.childElementCount) {
-        return
-    }
+    this.elements.container = el
+    setupEvents.call(this)
+    this.bus.triggers.setup.subscribe(setupSlider.bind(this))
 
-    this.state.elements = {}
-    this.state.selector = el.className
-    this.state.elements.sliderEl = el
+    this.bus.events.slideChange.subscribe(() => {
+        console.log('slide change: ', this.state.currentSlide)
+    })
 
-    setupBus.call(this)
-    setupEarlyEvents.call(this)
-
-    this.plugins
-        .filter((plugin) => plugin.busSubscribe)
-        .forEach((plugin) => {
-            this.bus.busSubscribe.subscribe(plugin.busSubscribe.bind(this))
-        })
-
-    this.bus.busSubscribe.subscribe(subscribeToBus.bind(this))
-    this.bus.busSubscribe.next(this)
-
-    setupState.call(this, config)
-}
-
-function subscribeToBus() {
-    this.bus.setup.subscribe(setupSlider.bind(this))
-    this.bus.slideChange.subscribe((position) => {
-        this.state.previousSlide = this.state.currentSlide
-        this.state.currentSlide = position
-        this.bus.preUpdate.next(this)
-        this.bus.update.next(this)
-        this.bus.postUpdate.next(this)
+    setupConfig.call(this, config, () => {
+        this.bus.triggers.setup.next(this)
     })
 }
 
 function setupSlider() {
+    setupDom.call(this)
+    setupState.call(this)
+
     if (this.state.slideCount <= this.config.options.slidesToShow || this.config.options.disabled) {
-        this.bus.disabled.next(this)
+        this.bus.events.disabled.next(this)
         return
     }
 
+    pluginFunctions.call(this, 'teardownEvents')
+    orderedPluginFunction.call(this, 'build')
+    orderedPluginFunction.call(this, 'setupEvents')
+
+    this.state.isInitilised = true
+}
+
+// TODO: just copied and not thought about
+function setupState() {
     this.state.maxSlidePosition = this.state.slideCount - 1
     this.state.minSlidePosition = 0
     this.state.slidePositionOffset = 0
+
+    // default infinite slide state
     this.state.totalSlideCount = this.state.slideCount
+    this.state.maxInfiniteSlidePosition = this.state.maxSlidePosition
+    this.state.minInfiniteSlidePosition = this.state.minSlidePosition
 
     if (this.config.options.slidesToScroll > this.config.options.slidesToShow) {
         this.config.options.slidesToScroll = this.config.options.slidesToShow
     }
+}
 
-    this.bus.prebuild.next(this)
-    this.bus.build.next(this)
+function setupDom() {
+    this.elements.viewport = this.elements.container.querySelector(
+        '.' + this.config.classes.viewport
+    )
 
-    if (!this.state.initialised) {
-        setupEvents.call(this)
-    }
+    this.elements.track = this.elements.container.querySelector('.' + this.config.classes.track)
 
-    this.bus.eventsUnSub.next(this)
-    this.bus.eventsSub.next(this)
-
-    this.bus.postSetup.next(this)
-    this.bus.preUpdate.next(this)
-    this.bus.update.next(this)
-    this.bus.postUpdate.next(this)
-
-    requestAnimationFrame(() => {
-        this.bus.applyAnimation.next(this)
+    this.elements.slides = Array.from(this.elements.track.children)
+    this.elements.slides.forEach((slide) => {
+        if (!slide.classList.contains(this.config.classes.slide)) {
+            slide.classList.add(this.config.classes.slide)
+        }
     })
 
-    this.state.initialised = true
+    this.state.slideCount = this.elements.slides.length
+}
+
+function pluginFunctions(name) {
+    this.plugins
+        .filter((plugin) => !!plugin[name])
+        .forEach((plugin) => {
+            plugin[name].call(this)
+        })
+}
+
+function orderedPluginFunction(name) {
+    this.plugins
+        .filter((plugin) => !!plugin[name])
+        .sort((pluginA, pluginB) => {
+            const a = pluginA[name].order || 0
+            const b = pluginB[name].order || 0
+            return a - b
+        })
+        .forEach((plugin) => {
+            plugin[name].fnc.call(this)
+        })
 }

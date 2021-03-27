@@ -1,104 +1,64 @@
 import { Subject, fromEvent, merge } from 'rxjs'
 import { debounceTime, map, scan } from 'rxjs/operators'
 
-export function setupBus() {
-    this.bus = {
-        busSubscribe: new Subject(),
-        setup: new Subject(),
-        prebuild: new Subject(),
-        build: new Subject(),
-        eventsUnSub: new Subject(),
-        eventsSub: new Subject(),
-        postSetup: new Subject(),
-        preUpdate: new Subject(),
-        update: new Subject(),
-        postUpdate: new Subject(),
-        applyAnimation: new Subject(),
-        reduceAnimation: new Subject(),
-        removeAnimation: new Subject(),
-        slideChange: new Subject(),
-        transitionEnd: new Subject(),
-        disabled: new Subject()
-    }
-}
-
-export function setupEarlyEvents() {
-    this.events = {
-        resize: fromEvent(window, 'resize').pipe(debounceTime(200)),
-        changeSlide: new Subject().pipe(map((change) => change || 1))
-    }
-}
-
 export function setupEvents() {
-    this.events.mouseOver = fromEvent(this.state.elements.viewport, 'mouseover')
-    this.events.mouseOut = fromEvent(this.state.elements.viewport, 'mouseout')
-
-    this.events = this.plugins
-        .filter((plugin) => plugin.events)
-        .map((plugin) => plugin.events.call(this))
-        .reduce((acc, events) => {
-            const keys = Object.keys(events)
-            if (!keys.length) {
-                return acc
-            }
-
-            keys.forEach((key) => {
-                if (acc[key]) {
-                    return
-                }
-
-                acc[key] = events[key]
-            })
-
-            return acc
-        }, this.events)
-
-    setupSlideChange.call(this)
-    setupTransitionEnd.call(this)
+    setupBus.call(this)
+    setupPluginSubscribeEvents.call(this)
+    slideChangeEvents.call(this)
 }
 
-function setupSlideChange() {
-    const baseObservables = {
-        click: fromEvent(this.state.elements.sliderEl, 'click')
-    }
+function setupBus() {
+    this.bus.events.slideChange = new Subject()
+    this.bus.events.resize = fromEvent(window, 'resize').pipe(debounceTime(200))
+    this.bus.events.disabled = new Subject()
 
-    let changeEvents = reducePluginEvents.call(this, 'slideChangeEvents', baseObservables)
-
-    changeEvents.push(this.events.changeSlide)
-
-    merge
-        .apply(null, changeEvents)
-        .pipe(
-            scan((acc, next) => {
-                if (acc !== this.state.currentSlide) {
-                    acc = this.state.currentSlide
-                }
-
-                return Math.max(
-                    Math.min(acc + next, this.state.maxSlidePosition),
-                    this.state.minSlidePosition
-                )
-            }, 0)
-        )
-        .subscribe((change) => {
-            this.bus.slideChange.next(change)
-        })
+    this.bus.triggers.incrementSlide = new Subject()
+    this.bus.triggers.changeSlide = new Subject()
+    this.bus.triggers.setup = new Subject()
 }
 
-function setupTransitionEnd() {
-    const transitionEvents = reducePluginEvents.call(this, 'transitionEndEvent')
-    if (!transitionEvents.length) {
-        return
-    }
-
-    merge.apply(null, transitionEvents).subscribe(() => {
-        this.bus.transitionEnd.next()
+function setupPluginSubscribeEvents() {
+    this.plugins.forEach((plugin) => {
+        plugin.subscribeToEvents && plugin.subscribeToEvents.call(this)
     })
 }
 
-function reducePluginEvents(fncName, ...params) {
-    return this.plugins
-        .filter((plugin) => plugin[fncName])
-        .map((plugin) => plugin[fncName].apply(this, params))
-        .filter((evt) => !!evt)
+function slideChangeEvents() {
+    const incrementSlide = this.bus.triggers.incrementSlide.pipe(
+        map((change) => {
+            let currentPosition = change + this.state.currentSlide
+            currentPosition = Math.max(
+                Math.min(currentPosition, this.state.maxSlidePosition),
+                this.state.minSlidePosition
+            )
+            this.state.previousSlide = this.state.currentSlide
+            this.state.currentSlide = currentPosition
+
+            let relativeCurrentPosition = change + this.state.relativeCurrentSlide
+            relativeCurrentPosition = Math.max(
+                Math.min(relativeCurrentPosition, this.state.maxInfiniteSlidePosition),
+                this.state.minInfiniteSlidePosition
+            )
+            this.state.relativePreviousSlide = this.state.relativeCurrentSlide
+            this.state.relativeCurrentSlide = relativeCurrentPosition
+        })
+    )
+
+    const changeSlide = this.bus.triggers.changeSlide.pipe(
+        map((newPosition) => {
+            this.state.previousSlide = this.state.currentSlide
+            this.state.relativePreviousSlide = this.state.relativeCurrentSlide
+
+            newPosition = Math.max(
+                Math.min(newPosition, this.state.maxSlidePosition),
+                this.state.minSlidePosition
+            )
+            this.state.currentSlide = newPosition
+            this.state.relativeCurrentSlide = newPosition
+        })
+    )
+
+    merge(incrementSlide, changeSlide).subscribe(() => {
+        this.bus.events.slideChange.next(this)
+    })
 }

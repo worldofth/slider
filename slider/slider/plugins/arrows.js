@@ -1,132 +1,133 @@
-import { merge } from 'rxjs'
-import { map, filter } from 'rxjs/operators'
+import { fromEvent } from 'rxjs'
 
-import { createElement } from '../util'
-
-export default {
-    id: 'arrows',
+export const Arrows = {
+    name: 'arrows',
     config: {
         options: {
-            arrows: true,
-            referenceArrows: false
+            arrows: false,
+            buildArrows: false,
+            referenceArrows: false,
+            arrowDataAttribSelector: true,
+            prevArrow: `<button class="c-slider__arrow" data-arrow="prev">previous</button>`,
+            nextArrow: `<button class="c-slider__arrow" data-arrow="next">next</button>`
         },
         classes: {
-            nextArrow: 'o-carousel__arrow--next',
-            prevArrow: 'o-carousel__arrow--prev'
-        },
-        arrows: {
-            prev: '<button class="o-carousel__arrow o-carousel__arrow--prev">prev</button>',
-            next: '<button class="o-carousel__arrow o-carousel__arrow--next">next</button>'
+            nextArrow: '[data-arrow="next"]',
+            prevArrow: '[data-arrow="prev"]'
         }
     },
-    busSubscribe,
-    slideChangeEvents
+    state: {
+        prevArrowObservable: null,
+        nextArrowObservable: null
+    },
+    build: {
+        order: 0,
+        fnc: build
+    },
+    setupEvents: {
+        order: 0,
+        fnc: setupEvents
+    },
+    teardownEvents,
+    subscribeToEvents
 }
 
-function busSubscribe() {
-    this.bus.build.subscribe(build.bind(this))
-    this.bus.update.subscribe(update.bind(this))
-    this.bus.disabled.subscribe(disabled.bind(this))
+function subscribeToEvents() {
+    this.bus.events.slideChange.subscribe(slideChange.bind(this))
+}
+
+function setupEvents() {
+    // on prev arrow click decrements the slider by slides to scroll
+    this.pluginState['arrows'].prevArrowObservable = fromEvent(
+        this.elements.prevArrow,
+        'click'
+    ).subscribe(() => {
+        this.bus.triggers.incrementSlide.next(this.config.options.slidesToScroll * -1)
+    })
+
+    // on next arrow click increments the slider by slides to scroll
+    this.pluginState['arrows'].nextArrowObservable = fromEvent(
+        this.elements.nextArrow,
+        'click'
+    ).subscribe(() => {
+        this.bus.triggers.incrementSlide.next(this.config.options.slidesToScroll)
+    })
+}
+
+function teardownEvents() {
+    if (this.pluginState['arrows'].prevArrowObservable) {
+        this.pluginState['arrows'].prevArrowObservable.unsubscribe()
+    }
+
+    if (this.pluginState['arrows'].nextArrowObservable) {
+        this.pluginState['arrows'].nextArrowObservable.unsubscribe()
+    }
 }
 
 function build() {
+    if (this.config.options.referenceArrows) {
+        let nextArrow = this.config.classes.nextArrow
+        let prevArrow = this.config.classes.prevArrow
+
+        if (!this.config.options.arrowDataAttribSelector) {
+            nextArrow = '.' + nextArrow
+            prevArrow = '.' + prevArrow
+        }
+
+        this.elements.nextArrow = this.elements.container.querySelector(nextArrow)
+        this.elements.prevArrow = this.elements.container.querySelector(prevArrow)
+    }
+
     if (!this.config.options.arrows) {
-        removeArrows.call(this)
+        if (this.elements.nextArrow) {
+            this.elements.nextArrow.hidden = true
+        }
+
+        if (this.elements.prevArrow) {
+            this.elements.prevArrow.hidden = true
+        }
         return
     }
 
-    if (this.state.elements.nextArrow) {
-        return
-    }
-
-    if (this.config.options.referenceArrows) {
-        this.state.elements.nextArrow = this.state.elements.sliderEl.querySelector(
-            '.' + this.config.classes.nextArrow
-        )
-
-        this.state.elements.prevArrow = this.state.elements.sliderEl.querySelector(
-            '.' + this.config.classes.prevArrow
-        )
-
-        return
-    }
-
-    this.config.arrows.prev = createElement(this.config.arrows.prev)
-    this.config.arrows.next = createElement(this.config.arrows.next)
-
-    this.state.elements.nextArrow = this.config.arrows.next.cloneNode(true)
-    this.state.elements.prevArrow = this.config.arrows.prev.cloneNode(true)
-
-    this.state.elements.sliderEl.insertBefore(
-        this.state.elements.prevArrow,
-        this.state.elements.viewport
-    )
-    this.state.elements.sliderEl.appendChild(this.state.elements.nextArrow)
-}
-
-function removeArrows() {
-    if (this.config.options.referenceArrows) {
-        return
-    }
-
-    this.state.elements.nextArrow && this.state.elements.nextArrow.remove()
-    this.state.elements.nextArrow = null
-    this.state.elements.prevArrow && this.state.elements.prevArrow.remove()
-    this.state.elements.prevArrow = null
-}
-
-function update() {
     if (
-        !this.config.options.arrows ||
-        this.config.options.infiniteSlide ||
-        this.config.options.infiniteFade ||
-        this.config.options.infiniteActiveClasses
+        this.config.options.buildArrows &&
+        this.config.options.nextArrow &&
+        this.config.options.prevArrow
     ) {
-        return
+        if (this.elements.nextArrow) {
+            this.elements.nextArrow.remove()
+        }
+
+        if (this.elements.prevArrow) {
+            this.elements.prevArrow.remove()
+        }
+
+        let nextArrow = document.createElement('div')
+        nextArrow.innerHTML = this.config.options.nextArrow
+        nextArrow = nextArrow.firstElementChild
+
+        let prevArrow = document.createElement('div')
+        prevArrow.innerHTML = this.config.options.prevArrow
+        prevArrow = prevArrow.firstElementChild
+
+        this.elements.nextArrow = this.elements.viewport.appendChild(nextArrow)
+        this.elements.prevArrow = this.elements.viewport.insertBefore(
+            prevArrow,
+            this.elements.track
+        )
     }
 
-    if (this.state.elements.prevArrow) {
-        this.state.elements.prevArrow.disabled =
-            this.state.currentSlide === this.state.minSlidePosition
-        this.state.elements.prevArrow.hidden = this.config.options.disabled
+    if (this.elements.nextArrow.hidden) {
+        this.elements.nextArrow.hidden = false
     }
 
-    if (this.state.elements.nextArrow) {
-        this.state.elements.nextArrow.disabled =
-            this.state.currentSlide === this.state.maxSlidePosition
-        this.state.elements.nextArrow.hidden = this.config.options.disabled
+    if (this.elements.prevArrow.hidden) {
+        this.elements.prevArrow.hidden = false
     }
 }
 
-function slideChangeEvents(baseObservables) {
-    return merge(
-        baseObservables.click.pipe(
-            filter(evt => evt.target.classList.contains(this.config.classes.nextArrow)),
-            filter(() => !this.config.options.disabled),
-            map(() => this.config.options.slidesToScroll)
-        ),
-        baseObservables.click.pipe(
-            filter(evt => evt.target.classList.contains(this.config.classes.prevArrow)),
-            filter(() => !this.config.options.disabled),
-            map(() => -this.config.options.slidesToScroll)
-        )
-    )
-}
+function slideChange() {
+    console.log('arrow update')
 
-function disabled() {
-    if (this.config.options.referenceArrows) {
-        this.state.elements.nextArrow = this.state.elements.sliderEl.querySelector(
-            '.' + this.config.classes.nextArrow
-        )
-        if (this.state.elements.nextArrow) {
-            this.state.elements.nextArrow.hidden = true
-        }
-
-        this.state.elements.prevArrow = this.state.elements.sliderEl.querySelector(
-            '.' + this.config.classes.prevArrow
-        )
-        if (this.state.elements.prevArrow) {
-            this.state.elements.prevArrow.hidden = true
-        }
-    }
+    // TODO: enable and disable arrows
 }

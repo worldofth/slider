@@ -1,116 +1,157 @@
-import Defaults from './defaults'
+import { DefaultPlugins, defaultOptions, defaultClasses } from './defaults'
 
-export function setupState(userConfig) {
-    let initialConfig = {
-        options: [{}, Defaults.options],
-        classes: [{}, Defaults.classes]
-    }
-
-    this.config = getPluginSettings.call(this, 'config', userConfig, initialConfig)
-
-    this.pluginState = this.plugins
-        .filter(plugin => plugin.pluginState)
-        .reduce((acc, plugin) => {
-            acc[plugin.id] = Object.assign({}, plugin.pluginState)
-            return acc
-        }, {})
-
-    this.events.resize.subscribe(checkBreakpoint.bind(this))
-
-    setupResponsiveOptions.call(this)
-    setupIntialDom.call(this)
-    checkBreakpoint.call(this)
+export const SliderObj = {
+    config: null,
+    state: null,
+    elements: null,
+    bus: null,
+    plugins: null,
+    pluginState: null
 }
 
-function getPluginSettings(key, userSettings, initialSettings) {
-    let settings = this.plugins.filter(plugin => plugin[key]).map(plugin => plugin[key])
+export const ConfigObj = {
+    options: null,
+    responsiveOptions: null,
+    breakpoints: null,
+    classes: null
+}
 
-    if (userSettings) {
-        settings.push(userSettings)
-    }
+/**
+ * example responsive option
+ *
+ * responsiveOptions: {
+ *     '1024px': {
+ *          slidesToScroll: 2
+ *     }
+ * }
+ */
 
-    settings = settings.reduce((acc, setting) => {
-        const keys = Object.keys(setting)
-        keys.forEach(key => {
-            if (!acc[key]) {
-                acc[key] = [{}]
-            }
+export const StateObj = {
+    isInitilised: false,
+    currentSlide: 0, // Current Slide, does not relate to infinite slides
+    relativeCurrentSlide: 0, // Current Slide for infinite slides
+    previousSlide: 0, // Previous Slide, does not relate to infinite slides
+    relativePreviousSlide: 0, // Previous Slide for infitie slides
+    slideCount: 0,
+    totalSlideCount: 0, // includes cloned slides
+    currentBreakpoint: 0,
+    maxSlidePosition: 0,
+    minSlidePosition: 0,
+    maxInfiniteSlidePosition: 0,
+    minInfiniteSlidePosition: 0,
+    slidePositionOffset: 0
+}
 
-            acc[key].push(setting[key])
-        })
+export const ElementObj = {
+    container: null,
+    viewport: null,
+    track: null,
+    slides: null,
+    allSlides: null // includes cloned slides
+}
 
-        return acc
-    }, initialSettings)
+export const BusObj = {
+    triggers: null,
+    events: null
+}
 
-    const settingKeys = Object.keys(settings)
-    return settingKeys.reduce((acc, key) => {
-        acc[key] = Object.assign.apply(null, settings[key])
+export const EventsObj = {
+    slideChange: null,
+    resize: null,
+    disabled: null
+}
+
+export const TriggersObj = {
+    incrementSlide: null,
+    changeSlide: null,
+    setup: null
+}
+
+export function setupConfig({ options = {}, classes = {}, plugins = [] }, doneCallback) {
+    this.plugins = [...DefaultPlugins, ...plugins]
+
+    let pluginOptions = {}
+    let pluginClasses = {}
+    this.plugins.forEach((plugin) => {
+        if (plugin.config.options) {
+            pluginOptions = { ...pluginOptions, ...plugin.config.options }
+        }
+
+        if (plugin.config.classes) {
+            pluginClasses = { ...pluginClasses, ...plugin.config.classes }
+        }
+    })
+
+    this.config.options = { ...defaultOptions, ...pluginOptions, ...options }
+    this.config.classes = { ...defaultClasses, ...pluginClasses, ...classes }
+
+    this.pluginState = this.plugins.reduce((acc, plugin) => {
+        acc[plugin.name] = plugin.state
         return acc
     }, {})
-}
-
-function setupResponsiveOptions() {
-    const intialOptions = {
-        0: Object.assign({}, this.config.options)
-    }
 
     if (this.config.options.responsive) {
-        delete intialOptions[0].responsive
-
-        const responsiveKeys = Object.keys(this.config.options.responsive)
-        this.config.responsiveOptions = responsiveKeys.reduce((acc, key) => {
-            let parsedKey = key.replace(/[^0-9]/g, '')
-            parsedKey = +parsedKey
-
-            if (acc[parsedKey]) {
-                return acc
-            }
-
-            acc[parsedKey] = Object.assign({}, acc[0], this.config.options.responsive[key])
-            return acc
-        }, intialOptions)
+        setupResponsiveOptions.call(this, doneCallback) // calls setup
+        this.bus.events.resize.subscribe(() => updateBreakpoints.call(this, doneCallback))
     } else {
-        this.config.responsiveOptions = intialOptions
+        doneCallback.call(this)
     }
-
-    this.config.breakpoints = Object.keys(this.config.responsiveOptions)
-    this.config.breakpoints.sort((a, b) => a - b)
-    this.config.options = this.config.responsiveOptions[0]
 }
 
-function checkBreakpoint() {
-    let checkBreakpoint = this.config.breakpoints.reduce(
-        (acc, breakpoint) => (window.innerWidth >= +breakpoint ? breakpoint : acc),
-        0
-    )
+/**
+ * creates the responsive options state and sets up the breakpoint list from largest to smallest
+ */
+function setupResponsiveOptions(doneCallback) {
+    const copyResponsiveOptions = Object.assign({}, this.config.options.responsive)
+    delete this.config.options.responsive
 
-    if (checkBreakpoint === this.state.currentBreakpoint) {
+    const responsiveOptions = {
+        0: this.config.options
+    }
+
+    const keys = Object.keys(copyResponsiveOptions)
+    keys.push('0')
+
+    const breakpoints = keys.sort((a, b) => {
+        const aNum = +a.replace(/[^0-9]/g, '')
+        const bNum = +b.replace(/[^0-9]/g, '')
+        return bNum - aNum
+    })
+
+    breakpoints.forEach((breakpoint) => {
+        responsiveOptions[breakpoint] = Object.assign(
+            {},
+            this.config.options,
+            copyResponsiveOptions[breakpoint]
+        )
+    })
+
+    this.config.breakpoints = breakpoints
+    this.config.responsiveOptions = responsiveOptions
+    updateBreakpoints.call(this, doneCallback)
+}
+
+/**
+ * Goes through the breakpoint keys from largest to smallest
+ * if the breakpoint has changes we change the config.options and call setup
+ */
+function updateBreakpoints(doneCallback) {
+    if (!this.config.breakpoints) {
         return
     }
 
-    this.state.currentBreakpoint = checkBreakpoint
-    this.config.options = this.config.responsiveOptions[checkBreakpoint]
-    this.bus.setup.next(this)
-    this.bus.slideChange.next(0)
-}
-
-function setupIntialDom() {
-    this.state.elements.viewport = this.state.elements.sliderEl.querySelector(
-        '.' + this.config.classes.viewport
-    )
-    this.state.elements.track = this.state.elements.sliderEl.querySelector(
-        '.' + this.config.classes.track
-    )
-    this.state.elements.slides = this.state.elements.track.children
-    this.state.elements.slides = Array.prototype.slice.call(this.state.elements.slides)
-
-    this.state.elements.slides.forEach(slide => {
-        if (slide.classList.contains(this.config.classes.slide)) {
-            return
+    for (let index = 0; index < this.config.breakpoints.length; index++) {
+        if (!window.matchMedia(`(min-width: ${this.config.breakpoints[index]})`).matches) {
+            continue
         }
 
-        slide.classList.add(this.config.classes.slide)
-    })
+        if (this.state.currentBreakpoint === this.config.breakpoints[index]) {
+            break
+        }
 
-    this.state.slideCount = this.state.elements.slides.length
+        this.state.currentBreakpoint = this.config.breakpoints[index]
+        this.config.options = this.config.responsiveOptions[this.state.currentBreakpoint]
+        doneCallback.call(this)
+        break
+    }
 }
