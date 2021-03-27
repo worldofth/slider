@@ -1,0 +1,106 @@
+.c-slider {
+    position: relative;
+
+    &[data-dots='false'] {
+        padding-bottom: 0;
+    }
+
+    &__viewport {
+        overflow: hidden;
+    }
+
+    &__slide {
+        height: 200px;
+        background-color: #ccc;
+    }
+
+    &__track {
+        display: flex;
+
+        > * {
+            flex: 0 0 100%;
+        }
+    }
+
+    &[data-slides-to-show='4'] &__track > * {
+        flex: 0 0 50%;
+
+        @media (min-width: 1024px) {
+            flex: 0 0 25%;
+        }
+    }
+
+    &__dots {
+        position: absolute;
+        left: 0;
+        display: flex;
+    }
+
+    &__dot {
+        position: relative;
+        width: 12px;
+        height: 12px;
+
+        &:before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        &:hover:before,
+        &.is-active:before {
+            background-color: rebeccapurple;
+        }
+    }
+
+    &[data-background='dark'] &__dot:before {
+        background-color: white;
+    }
+
+    &[data-background='dark'] &__dot:hover:before,
+    &[data-background='dark'] &__dot.is-active:before {
+        background-color: purple;
+    }
+
+    &[data-background='dark'][style*='--secondary'] &__dot:hover:before,
+    &[data-background='dark'][style*='--secondary'] &__dot.is-active:before {
+        background-color: rebeccapurple;
+    }
+
+    &__controls {
+        display: flex;
+        align-items: center;
+        color: rebeccapurple;
+    }
+
+    &[data-align='center'] &__controls {
+        justify-content: center;
+    }
+
+    &[data-background='dark'] &__controls {
+        color: white;
+    }
+
+    &__controls &__dots {
+        position: static;
+    }
+
+    &__arrow {
+        z-index: 1;
+        color: inherit;
+        padding: 0;
+        background-color: transparent;
+        width: 48px;
+        height: 48px;
+
+        svg {
+            width: 48px;
+            height: 48px;
+        }
+    }
+}

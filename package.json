@@ -4,8 +4,26 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "parcel index.html",
+    "build": "parcel build index.html"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "animejs": "^3.2.1",
+    "eslint": "^7.21.0",
+    "eslint-config-prettier": "^8.1.0",
+    "eslint-plugin-prettier": "^3.3.1",
+    "normalize.css": "^8.0.1",
+    "prettier": "^2.2.1",
+    "prettier-stylelint": "^0.4.2",
+    "rxjs": "^6.6.6",
+    "stylelint": "^13.11.0",
+    "stylelint-config-standard": "^20.0.0",
+    "stylelint-scss": "^3.19.0"
+  },
+  "devDependencies": {
+    "parcel-bundler": "^1.12.5",
+    "sass": "^1.32.8"
+  }
 }
