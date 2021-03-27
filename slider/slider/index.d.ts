@@ -5,7 +5,8 @@ export declare type Selector = String | Element
 
 export interface Options {
     slidesToShow?: number
-    slidesToScroll?: number
+    slidesToScroll?: number,
+    isInfinite?: boolean
 }
 
 export interface SlideOptions extends options {

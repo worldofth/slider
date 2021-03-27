@@ -2,7 +2,8 @@ import { Arrows } from './plugins'
 
 export const defaultOptions = {
     slidesToShow: 1,
-    slidesToScroll: 1
+    slidesToScroll: 1,
+    isInfinite: false
 }
 
 export const defaultClasses = {

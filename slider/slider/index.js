@@ -1,3 +1,27 @@
+/*
+ * TODO:
+ *  - Core concept is everything is off by default, and it's up the the developer to correctly turn things on and off
+ *     - will need to document what to turn on and off when and where
+ *  - the concept of infinite is a core peice of functionality, not a plugin
+ *      - as it changes the way we calculate state, we don't want to do that in a plugin
+ *  [] adjust to account for infinite
+ *  [] adjust to account for infinite in arrows
+ *  [] create horizontal slide animation - can look at infinite stuff, plan to use animejs
+ *  [] make accessible
+ *  [] Dots
+ *  [] key navigation
+ *  [] autoplay
+ *      - autoplay on intersection
+ *  [] pause events for autoplay
+ *      - dots
+ *      - arrows
+ *      - track
+ *  [] fade - only looks at current slide so can ignore infinite stuff, plan to use animejs
+ *  [] swipe - plan to use animejs so can set the seek on drag for feedback, will work on slide and fade
+ *  [] navFor
+ *
+ */
+
 import {
     SliderObj,
     ConfigObj,
