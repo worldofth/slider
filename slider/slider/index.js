@@ -8,7 +8,7 @@
  *  [+] create horizontal slide animation - can look at infinite stuff, plan to use animejs
  *  [+] adjust to account for infinite in arrows
  *  [] make accessible
- *  [] Dots
+ *  [+] Dots
  *  [] key navigation
  *  [] autoplay
  *      - autoplay on intersection
