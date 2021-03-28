@@ -7,7 +7,7 @@
  *  [+] adjust to account for infinite
  *  [+] create horizontal slide animation - can look at infinite stuff, plan to use animejs
  *  [+] adjust to account for infinite in arrows
- *  [] make accessible
+ *  [] make accessible - https://www.w3.org/WAI/tutorials/carousels/
  *  [+] Dots
  *  [] key navigation
  *  [] autoplay
