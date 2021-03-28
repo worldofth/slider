@@ -1,4 +1,4 @@
-import { Arrows } from './plugins'
+import { Arrows, HorizontalSlide } from './plugins'
 
 export const defaultOptions = {
     slidesToShow: 1,
@@ -14,4 +14,4 @@ export const defaultClasses = {
     slideClone: 'c-slide__slide-clone'
 }
 
-export const DefaultPlugins = [Arrows]
+export const DefaultPlugins = [Arrows, HorizontalSlide]

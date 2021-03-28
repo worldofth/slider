@@ -11,10 +11,12 @@ function setupBus() {
     this.bus.events.slideChange = new Subject()
     this.bus.events.resize = fromEvent(window, 'resize').pipe(debounceTime(200))
     this.bus.events.disabled = new Subject()
+    this.bus.events.infiniteLoop = new Subject()
 
     this.bus.triggers.incrementSlide = new Subject()
     this.bus.triggers.changeSlide = new Subject()
     this.bus.triggers.setup = new Subject()
+    this.bus.triggers.transitionEnd = new Subject()
 }
 
 function setupPluginSubscribeEvents() {
@@ -59,6 +61,25 @@ function slideChangeEvents() {
     )
 
     merge(incrementSlide, changeSlide).subscribe(() => {
+        if (this.config.options.isInfinite) {
+            if (this.state.relativeCurrentSlide == this.state.maxInfiniteSlidePosition) {
+                this.state.relativePreviousSlide =
+                    this.state.minInfiniteSlidePosition + this.state.scrollVsShowDiff
+                this.state.relativeCurrentSlide = 0
+                this.state.currentSlide = 0
+
+                this.bus.events.infiniteLoop.next()
+            } else if (this.state.relativeCurrentSlide === this.state.minInfiniteSlidePosition) {
+                this.state.relativePreviousSlide =
+                    this.state.maxInfiniteSlidePosition - this.state.scrollVsShowDiff
+                this.state.relativeCurrentSlide =
+                    this.state.maxInfiniteSlidePosition - this.config.options.slidesToShow
+                this.state.currentSlide = this.state.relativeCurrentSlide
+
+                this.bus.events.infiniteLoop.next()
+            }
+        }
+
         this.bus.events.slideChange.next(this)
     })
 }

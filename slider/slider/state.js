@@ -39,7 +39,8 @@ export const StateObj = {
     minSlidePosition: 0,
     maxInfiniteSlidePosition: 0,
     minInfiniteSlidePosition: 0,
-    slidePositionOffset: 0
+    slidePositionOffset: 0,
+    scrollVsShowDiff: 0
 }
 
 export const ElementObj = {
@@ -47,7 +48,8 @@ export const ElementObj = {
     viewport: null,
     track: null,
     slides: null,
-    allSlides: null // includes cloned slides
+    allSlides: null, // includes cloned slides
+    cloneSlideStore: null
 }
 
 export const BusObj = {
@@ -58,13 +60,15 @@ export const BusObj = {
 export const EventsObj = {
     slideChange: null,
     resize: null,
-    disabled: null
+    disabled: null,
+    infiniteLoop: null
 }
 
 export const TriggersObj = {
     incrementSlide: null,
     changeSlide: null,
-    setup: null
+    setup: null,
+    transitionEnd: null
 }
 
 export function setupConfig({ options = {}, classes = {}, plugins = [] }, doneCallback) {
