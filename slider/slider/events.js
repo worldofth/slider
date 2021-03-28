@@ -28,21 +28,33 @@ function setupPluginSubscribeEvents() {
 function slideChangeEvents() {
     const incrementSlide = this.bus.triggers.incrementSlide.pipe(
         map((change) => {
-            let currentPosition = change + this.state.currentSlide
-            currentPosition = Math.max(
-                Math.min(currentPosition, this.state.maxSlidePosition),
-                this.state.minSlidePosition
-            )
-            this.state.previousSlide = this.state.currentSlide
-            this.state.currentSlide = currentPosition
+            if (this.config.options.isInfinite) {
+                let currentPosition =
+                    Math.abs(change + this.state.currentSlide + this.state.slideCount) %
+                    this.state.slideCount
+                currentPosition = Math.max(
+                    Math.min(currentPosition, this.state.maxSlidePosition),
+                    this.state.minSlidePosition
+                )
+                this.state.previousSlide = this.state.currentSlide
+                this.state.currentSlide = currentPosition
 
-            let relativeCurrentPosition = change + this.state.relativeCurrentSlide
-            relativeCurrentPosition = Math.max(
-                Math.min(relativeCurrentPosition, this.state.maxInfiniteSlidePosition),
-                this.state.minInfiniteSlidePosition
-            )
-            this.state.relativePreviousSlide = this.state.relativeCurrentSlide
-            this.state.relativeCurrentSlide = relativeCurrentPosition
+                let relativeCurrentPosition = change + this.state.relativeCurrentSlide
+                relativeCurrentPosition = Math.max(
+                    Math.min(relativeCurrentPosition, this.state.maxInfiniteSlidePosition),
+                    this.state.minInfiniteSlidePosition
+                )
+                this.state.relativePreviousSlide = this.state.relativeCurrentSlide
+                this.state.relativeCurrentSlide = relativeCurrentPosition
+            } else {
+                let currentPosition = change + this.state.currentSlide
+                currentPosition = Math.max(
+                    Math.min(currentPosition, this.state.maxSlidePosition),
+                    this.state.minSlidePosition
+                )
+                this.state.previousSlide = this.state.currentSlide
+                this.state.currentSlide = currentPosition
+            }
         })
     )
 

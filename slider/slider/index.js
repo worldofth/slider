@@ -5,8 +5,8 @@
  *  - the concept of infinite is a core peice of functionality, not a plugin
  *      - as it changes the way we calculate state, we don't want to do that in a plugin
  *  [+] adjust to account for infinite
- *  [] create horizontal slide animation - can look at infinite stuff, plan to use animejs
- *  [] adjust to account for infinite in arrows
+ *  [+] create horizontal slide animation - can look at infinite stuff, plan to use animejs
+ *  [+] adjust to account for infinite in arrows
  *  [] make accessible
  *  [] Dots
  *  [] key navigation
@@ -117,6 +117,7 @@ function setupState() {
             this.state.maxSlidePosition + this.config.options.slidesToShow
         this.state.minInfiniteSlidePosition = -this.config.options.slidesToShow
         this.state.slidePositionOffset = this.config.options.slidesToShow
+        this.state.maxSlidePosition = this.state.slideCount
     } else {
         this.state.totalSlideCount = this.state.slideCount
         this.state.maxInfiniteSlidePosition = this.state.maxSlidePosition
@@ -181,8 +182,13 @@ function setupInfiniteSlides() {
                 }
             }
 
-            const startClones = this.elements.allSlides.slice(0, this.config.options.slidesToShow)
-            const endClones = this.elements.allSlides.slice(-this.config.options.slidesToShow)
+            let cloneCount =
+                this.elements.allSlides.filter((slide) =>
+                    slide.classList.contains(this.config.classes.slideClone)
+                ).length / 2
+
+            const startClones = this.elements.allSlides.slice(0, cloneCount)
+            const endClones = this.elements.allSlides.slice(-cloneCount)
 
             this.state.cloneSlideStore.start.innerHTML = ''
             this.state.cloneSlideStore.end.innerHTML = ''
@@ -193,6 +199,9 @@ function setupInfiniteSlides() {
             endClones.forEach((clone) => {
                 this.state.cloneSlideStore.end.appendChild(clone)
             })
+
+            this.elements.slides = Array.from(this.elements.track.children)
+            this.state.slideCount = this.elements.slides.length
         }
         return
     }
@@ -210,6 +219,8 @@ function setupInfiniteSlides() {
             this.elements.track.appendChild(clone)
         })
 
+        this.elements.allSlides = Array.from(this.elements.track.children)
+        this.state.totalSlideCount = this.elements.allSlides.length
         return
     }
 

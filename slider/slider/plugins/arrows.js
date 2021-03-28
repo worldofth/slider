@@ -7,7 +7,7 @@ export const Arrows = {
             arrows: false,
             buildArrows: false,
             referenceArrows: false,
-            arrowDataAttribSelector: true,
+            arrowDataAttribs: true,
             prevArrow: `<button class="c-slider__arrow" data-arrow="prev">previous</button>`,
             nextArrow: `<button class="c-slider__arrow" data-arrow="next">next</button>`
         },
@@ -37,6 +37,10 @@ function subscribeToEvents() {
 }
 
 function setupEvents() {
+    if (!this.config.options.arrows) {
+        return
+    }
+
     // on prev arrow click decrements the slider by slides to scroll
     this.pluginState['arrows'].prevArrowObservable = fromEvent(
         this.elements.prevArrow,
@@ -69,7 +73,7 @@ function build() {
         let nextArrow = this.config.classes.nextArrow
         let prevArrow = this.config.classes.prevArrow
 
-        if (!this.config.options.arrowDataAttribSelector) {
+        if (!this.config.options.arrowDataAttribs) {
             nextArrow = '.' + nextArrow
             prevArrow = '.' + prevArrow
         }
@@ -124,10 +128,34 @@ function build() {
     if (this.elements.prevArrow.hidden) {
         this.elements.prevArrow.hidden = false
     }
+
+    updateArrowState.call(this)
 }
 
 function slideChange() {
-    console.log('arrow update')
+    if (!this.config.options.arrows) {
+        return
+    }
 
-    // TODO: enable and disable arrows
+    updateArrowState.call(this)
+}
+
+function updateArrowState() {
+    if (this.config.options.isInfinite) {
+        this.elements.prevArrow.removeAttribute('disabled')
+        this.elements.nextArrow.removeAttribute('disabled')
+        return
+    }
+
+    if (this.state.currentSlide === this.state.minSlidePosition) {
+        this.elements.prevArrow.disabled = true
+    } else {
+        this.elements.prevArrow.removeAttribute('disabled')
+    }
+
+    if (this.state.currentSlide === this.state.maxSlidePosition) {
+        this.elements.nextArrow.disabled = true
+    } else {
+        this.elements.nextArrow.removeAttribute('disabled')
+    }
 }

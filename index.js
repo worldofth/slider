@@ -6,13 +6,15 @@ function init() {
         Slider('.js-slider', {
             options: {
                 slidesToShow: 1,
-                isInfinite: true,
                 horizontalSlide: true,
-                arrows: true,
                 referenceArrows: true,
+                referenceDotContainer: true,
+                arrows: true,
                 responsive: {
                     '1024px': {
+                        dots: true,
                         slidesToShow: 2,
+                        isInfinite: true,
                         testing: 'hello world'
                     }
                 }
