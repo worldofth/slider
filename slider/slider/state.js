@@ -90,7 +90,7 @@ export function setupConfig({ options = {}, classes = {}, plugins = [] }, doneCa
     this.config.classes = { ...defaultClasses, ...pluginClasses, ...classes }
 
     this.pluginState = this.plugins.reduce((acc, plugin) => {
-        acc[plugin.name] = plugin.state
+        acc[plugin.name] = Object.assign({}, plugin.state)
         return acc
     }, {})
 
