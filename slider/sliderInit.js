@@ -1,39 +1,12 @@
-import { CaseStudySliders } from '../case-study/case-study'
-
-let Slider
-
-export const commonSliderClasses = {
-    slider: 'c-slider',
-    viewport: 'c-slider__viewport',
-    track: 'c-slider__track',
-    slide: 'c-slider__slide',
-    slideClone: 'c-slider__slide--clone',
-    nextArrow: 'c-slider__arrow--next',
-    prevArrow: 'c-slider__arrow--prev',
-    dotList: 'c-slider__dots',
-    dot: 'c-slider__dot'
-}
-
 export function SliderInit() {
     const genericSliderEls = document.querySelectorAll('.js-slider')
-    const caseStudyEls = document.querySelectorAll('.js-case-study-sliders')
 
-    if (genericSliderEls.length || caseStudyEls.length) {
-        const init = () => {
-            genericSlider(Slider, genericSliderEls)
-            CaseStudySliders(Slider, caseStudyEls, commonSliderClasses)
-        }
-
-        if (Slider) {
-            init()
-        } else {
-            import('./slider/index')
-                .then((m) => m.Slider)
-                .then((fnc) => {
-                    Slider = fnc
-                    init()
-                })
-        }
+    if (genericSliderEls.length) {
+        import('./slider/index')
+            .then((m) => m.Slider)
+            .then((Slider) => {
+                genericSlider(Slider, genericSliderEls)
+            })
     }
 }
 
@@ -42,13 +15,17 @@ function genericSlider(Slider, els) {
         return
     }
     const sliders = Array.from(els)
-    sliders.forEach((el) => {
-        let { dots, slidesToShow, slidesToScroll, autoplay } = el.dataset
-        dots = dots !== 'false'
+    window.sliders = sliders.map((el) => {
+        let { dots, slidesToShow, slidesToScroll, autoplay, arrows, isInfinite, mobileDisable } = el.dataset
+        dots = dots === 'true'
         autoplay = autoplay === 'true'
+        arrows = arrows === 'true'
+        mobileDisable = mobileDisable === 'true'
+        isInfinite = isInfinite !== 'false'
         slidesToShow = +slidesToShow || 1
         slidesToScroll = +slidesToScroll || 1
         let responsive = {}
+
         if (slidesToShow === 4) {
             slidesToShow = 2
             slidesToScroll = 2
@@ -61,22 +38,41 @@ function genericSlider(Slider, els) {
             }
         }
 
-        Slider(el, {
+        if (slidesToShow === 3) {
+            slidesToShow = 1
+            slidesToScroll = 1
+
+            responsive = {
+                '768px': {
+                    slidesToShow: 3,
+                    slidesToScroll: 1
+                }
+            }
+        }
+
+        if (mobileDisable) {
+            if (!responsive['768px']) {
+                responsive['768px'] = {}
+            }
+
+            responsive['768px'].disabled = false
+        }
+
+        return Slider(el, {
             options: {
                 slidesToShow,
                 slidesToScroll,
-                arrows: false,
-                referenceArrows: true,
+                horizontalSlide: true,
+                arrows,
                 autoplay,
+                referenceArrows: true,
+                isInfinite,
                 dots,
                 referenceDotContainer: true,
-                infiniteSlide: true,
-                horizontalSlide: true,
-                pauseOnHover: true,
-                dotFormat: () => '<span></span>',
+                disabled: mobileDisable,
+                dotFormat: (x) => `<span class="u-visually-hidden">slide ${x}</span>`,
                 responsive
-            },
-            classes: commonSliderClasses
+            }
         })
     })
 }

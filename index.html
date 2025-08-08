@@ -3,35 +3,54 @@
     <link rel="stylesheet" href="./main.scss">
 </head>
 <body>
-    <div class="c-slider js-slider">
-        <div class="c-slider__viewport">
-            <ul class="c-slider__track" data-unstyled>
-                <li class="c-slider__slide">
-                    <div>Slide 1</div>
-                </li>
-                <li class="c-slider__slide">
-                    <div>Slide 2</div>
-                </li>
-                <li class="c-slider__slide">
-                    <div>Slide 3</div>
-                </li>
-                <li class="c-slider__slide">
-                    <div>Slide 4</div>
-                </li>
-            </ul>
-
-            <div class="c-slider__controls">
-                <button class="c-slider__arrow" data-arrow="prev">
-                    left
-                </button>
-                <div class="c-slider__dots"></div>
-                <button class="c-slider__arrow" data-arrow="next">
-                    right
-                </button>
+    <main class="l-container">
+        <div
+            class="c-slider js-slider"
+            aria-labelledby="sliderHeader"
+            data-dots="true"
+            data-arrows="true"
+            data-autoplay="false"
+            data-slides-to-show="3"
+            data-slides-to-scroll="1"
+            data-is-infinite="true"
+        >
+            <a href="#endSlider" id="startSlider" class="c-slider__skip-btn">Start of slider, skip slider</a>
+            <h2 id="sliderHeader" class="u-visually-hidden">Accessible Slider title</h2>
+            <div class="c-slider__viewport">
+                <ul class="c-slider__track" data-unstyled>
+                    <li class="c-slider__slide">
+                        <img src="https://picsum.photos/seed/slide1/500/350" alt="slide 1">
+                    </li>
+                    <li class="c-slider__slide">
+                        <img src="https://picsum.photos/seed/slide2/500/350" alt="slide 2">
+                    </li>
+                    <li class="c-slider__slide">
+                        <img src="https://picsum.photos/seed/slide3/500/350" alt="slide 3">
+                    </li>
+                    <li class="c-slider__slide">
+                        <img src="https://picsum.photos/seed/slide4/500/350" alt="slide 4">
+                    </li>
+                </ul>
+                <div class="c-slider__controls">
+                    <button class="c-slider__arrow" data-arrow="prev">
+                        <span class="u-visually-hidden">previous slide</span>
+                        <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M10.473 15.784a.669.669 0 0 0 .985 0 .76.76 0 0 0 0-1.039l-1.908-2.01h7.112c.387 0 .696-.326.696-.734s-.31-.734-.696-.734H9.551l1.907-2.011a.76.76 0 0 0 0-1.039.668.668 0 0 0-.985 0L7.077 11.8a.287.287 0 0 0 0 .391l3.396 3.594Z"/>
+                        </svg>
+                    </button>
+                    <div class="c-slider__dots"></div>
+                    <button class="c-slider__arrow" data-arrow="next">
+                        <span class="u-visually-hidden">next slide</span>
+                        <svg aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <path fill="currentColor" d="M13.886 8.216a.668.668 0 0 0-.985 0 .76.76 0 0 0 0 1.039l1.907 2.011H7.696c-.387 0-.696.326-.696.734s.31.734.696.734h7.112l-1.907 2.011a.76.76 0 0 0 0 1.039.669.669 0 0 0 .985 0l3.396-3.583a.287.287 0 0 0 0-.391l-3.396-3.594Z"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
+            <a href="#startSlider" id="endSlider" class="c-slider__skip-btn">End of slider, skip slider</a>
         </div>
-    </div>
+    </main>
 
-    <script src="./index.js"></script>
+    <script type="module" src="./index.js"></script>
 </body>
 </html>

@@ -7,251 +7,311 @@
  *  [+] adjust to account for infinite
  *  [+] create horizontal slide animation - can look at infinite stuff, plan to use animejs
  *  [+] adjust to account for infinite in arrows
- *  [] make accessible - https://www.w3.org/WAI/tutorials/carousels/
+ *  [+] make accessible - https://www.w3.org/WAI/tutorials/carousels/
  *  [+] Dots
- *  [] key navigation
- *  [] autoplay
+ *  [+] autoplay
  *      - autoplay on intersection
- *  [] pause events for autoplay
- *      - dots
- *      - arrows
- *      - track
- *  [] fade - only looks at current slide so can ignore infinite stuff, plan to use animejs
- *  [] swipe - plan to use animejs so can set the seek on drag for feedback, will work on slide and fade
- *  [] navFor
+ *  [+] pause events for autoplay
+ *      - focus
+ *      - hover
+ *      - intersection
+ *  [+] fade - only looks at current slide so can ignore infinite stuff, plan to use animejs
+ *  [+] navFor
+ *  [+] swipe
  *
  */
 
 import {
-    SliderObj,
-    ConfigObj,
-    StateObj,
-    ElementObj,
-    BusObj,
-    EventsObj,
-    TriggersObj,
-    setupConfig
-} from './state'
-import { setupEvents } from './events'
+  SliderObj,
+  ConfigObj,
+  StateObj,
+  ElementObj,
+  BusObj,
+  EventsObj,
+  TriggersObj,
+  setupConfig,
+} from './state';
+import { setupEvents } from './events';
+
+const sliders = [];
 
 export function Slider(selector, config = {}) {
-    const Obj = Object.assign({}, SliderObj)
+  const Obj = Object.assign({}, SliderObj);
 
-    Obj.config = Object.assign({}, ConfigObj)
-    Obj.state = Object.assign({}, StateObj)
-    Obj.elements = Object.assign({}, ElementObj)
+  Obj.config = Object.assign({}, ConfigObj);
+  Obj.state = Object.assign({}, StateObj);
+  Obj.elements = Object.assign({}, ElementObj);
 
-    Obj.bus = Object.assign({}, BusObj)
-    Obj.bus.triggers = Object.assign({}, TriggersObj)
-    Obj.bus.events = Object.assign({}, EventsObj)
+  Obj.bus = Object.assign({}, BusObj);
+  Obj.bus.triggers = Object.assign({}, TriggersObj);
+  Obj.bus.events = Object.assign({}, EventsObj);
 
-    Obj.plugins = []
-    Obj.pluginState = {}
-    Obj.animations = {}
+  Obj.plugins = [];
+  Obj.pluginState = {};
+  Obj.animations = {};
 
-    init.call(Obj, selector, config)
-    return Obj
+  init.call(Obj, selector, config);
+  return Obj;
 }
 
 function init(selector, config = {}) {
-    let el = selector
-    if (typeof selector === 'string') {
-        el = document.querySelector(selector)
-    }
+  let el = selector;
+  if (typeof selector === 'string') {
+    el = document.querySelector(selector);
+  }
 
-    if (!el) {
-        console.warn('No slider container was found')
-        return
-    }
+  if (!el) {
+    console.warn('No slider container was found');
+    return;
+  }
 
-    this.elements.container = el
-    setupEvents.call(this)
-    this.bus.triggers.setup.subscribe(setupSlider.bind(this))
+  if (sliders.includes(el)) {
+    return;
+  }
 
-    setupConfig.call(this, config, () => {
-        this.bus.triggers.setup.next(this)
-    })
-    pluginFunctions.call(this, 'subscribeToEvents')
+  sliders.push(el);
+
+  this.elements.container = el;
+  this.elements.container.dataset.init = true;
+  setupEvents.call(this);
+  this.bus.triggers.setup.subscribe(setupSlider.bind(this));
+
+  setupConfig.call(this, config, () => {
+    pluginFunctions.call(this, 'subscribeToEvents');
+    this.bus.triggers.setup.next(this);
+  });
 }
 
 function setupSlider() {
-    setupDom.call(this)
-    setupState.call(this)
+  setupDom.call(this);
 
-    if (this.state.slideCount <= this.config.options.slidesToShow || this.config.options.disabled) {
-        this.bus.events.disabled.next(this)
-        return
+  this.bus.events.disabled.subscribe(() => {
+    if (this.state.isDisabled) {
+      setupInfiniteSlides.call(this);
+      setupState.call(this);
     }
+  });
 
-    pluginFunctions.call(this, 'teardownEvents')
-    orderedPluginFunction.call(this, 'build')
-    orderedPluginFunction.call(this, 'setupEvents')
+  if (
+    this.state.slideCount <= this.config.options.slidesToShow ||
+    this.config.options.disabled
+  ) {
+    this.state.isDisabled = true;
+    this.elements.container.removeAttribute('data-init');
+    this.bus.events.disabled.next(true);
+    return;
+  }
 
-    this.state.isInitilised = true
+  if (this.state.isDisabled && !this.config.options.disabled) {
+    this.state.isDisabled = false;
+    this.elements.container.dataset.init = true;
+  }
+
+  setupInfiniteSlides.call(this);
+  setupState.call(this);
+
+  pluginFunctions.call(this, 'teardownEvents');
+  orderedPluginFunction.call(this, 'build');
+  orderedPluginFunction.call(this, 'setupEvents');
+
+  this.state.isInitilised = true;
 }
 
 function setupState() {
-    this.state.maxSlidePosition = this.state.slideCount - this.config.options.slidesToShow
-    this.state.minSlidePosition = 0
-    this.state.slidePositionOffset = 0
+  if (this.config.options.fade) {
+    this.config.options.slidesToShow = 1;
+  }
 
-    this.state.currentSlide = Math.max(
-        Math.min(this.state.currentSlide, this.state.maxSlidePosition),
-        this.state.minSlidePosition
-    )
-    this.state.previousSlide = Math.max(
-        Math.min(this.state.previousSlide, this.state.maxSlidePosition),
-        this.state.minSlidePosition
-    )
-    this.state.relativeCurrentSlide = Math.max(
-        Math.min(this.state.relativeCurrentSlide, this.state.maxInfiniteSlidePosition),
-        this.state.minInfiniteSlidePosition
-    )
-    this.state.relativePreviousSlide = Math.max(
-        Math.min(this.state.relativePreviousSlide, this.state.maxInfiniteSlidePosition),
-        this.state.minInfiniteSlidePosition
-    )
+  if (this.config.options.slidesToScroll > this.config.options.slidesToShow) {
+    this.config.options.slidesToScroll = this.config.options.slidesToShow;
+  }
 
-    if (this.config.options.isInfinite) {
-        this.state.maxInfiniteSlidePosition =
-            this.state.maxSlidePosition + this.config.options.slidesToShow
-        this.state.minInfiniteSlidePosition = -this.config.options.slidesToShow
-        this.state.slidePositionOffset = this.config.options.slidesToShow
-        this.state.maxSlidePosition = this.state.slideCount
-    } else {
-        this.state.totalSlideCount = this.state.slideCount
-        this.state.maxInfiniteSlidePosition = this.state.maxSlidePosition
-        this.state.minInfiniteSlidePosition = this.state.minSlidePosition
-    }
+  this.state.maxSlidePosition =
+    Math.ceil(this.state.slideCount / this.config.options.slidesToScroll) - 1;
+  this.state.minSlidePosition = 0;
+  this.state.slidePositionOffset = 0;
 
-    if (this.config.options.slidesToScroll > this.config.options.slidesToShow) {
-        this.config.options.slidesToScroll = this.config.options.slidesToShow
-    }
+  this.state.currentSlide = Math.max(
+    Math.min(this.state.currentSlide, this.state.maxSlidePosition),
+    this.state.minSlidePosition,
+  );
+  this.state.previousSlide = Math.max(
+    Math.min(this.state.previousSlide, this.state.maxSlidePosition),
+    this.state.minSlidePosition,
+  );
 
-    this.state.scrollVsShowDiff =
-        this.config.options.slidesToShow - this.config.options.slidesToScroll
+  if (this.config.options.isInfinite) {
+    this.state.maxInfiniteSlidePosition = this.state.slideCount;
+
+    this.state.minInfiniteSlidePosition = -this.config.options.slidesToShow;
+
+    this.state.slidePositionOffset = Math.ceil(
+      this.config.options.slidesToShow / this.config.options.slidesToScroll,
+    );
+  } else {
+    this.state.totalSlideCount = this.state.slideCount;
+    this.state.maxInfiniteSlidePosition = this.state.maxSlidePosition;
+    this.state.minInfiniteSlidePosition = this.state.minSlidePosition;
+  }
+
+  this.state.relativeCurrentSlide = Math.max(
+    Math.min(
+      this.state.relativeCurrentSlide,
+      this.state.maxInfiniteSlidePosition,
+    ),
+    this.state.minInfiniteSlidePosition,
+  );
+
+  this.state.relativePreviousSlide = Math.max(
+    Math.min(
+      this.state.relativePreviousSlide,
+      this.state.maxInfiniteSlidePosition,
+    ),
+    this.state.minInfiniteSlidePosition,
+  );
+
+  this.state.scrollVsShowDiff =
+    this.config.options.slidesToShow - this.config.options.slidesToScroll;
+
+  this.elements.container.dataset.slidesToShow =
+    this.config.options.slidesToShow;
 }
 
 function setupDom() {
-    this.elements.viewport = this.elements.container.querySelector(
-        '.' + this.config.classes.viewport
-    )
+  this.elements.viewport = this.elements.container.querySelector(
+    '.' + this.config.classes.viewport,
+  );
 
-    this.elements.track = this.elements.container.querySelector('.' + this.config.classes.track)
+  this.elements.track = this.elements.container.querySelector(
+    '.' + this.config.classes.track,
+  );
 
-    this.elements.slides = Array.from(this.elements.track.children)
-    this.elements.slides.forEach((slide) => {
-        if (!slide.classList.contains(this.config.classes.slide)) {
-            slide.classList.add(this.config.classes.slide)
-        }
-    })
-    this.elements.allSlides = this.elements.slides
-    this.state.slideCount = this.elements.slides.length
-
-    setupInfiniteSlides.call(this)
+  this.elements.slides = Array.from(this.elements.track.children);
+  this.elements.slides.forEach((slide) => {
+    if (!slide.classList.contains(this.config.classes.slide)) {
+      slide.classList.add(this.config.classes.slide);
+    }
+  });
+  this.elements.allSlides = this.elements.slides;
+  this.state.slideCount = this.elements.slides.length;
 }
 
 function pluginFunctions(name) {
-    this.plugins
-        .filter((plugin) => !!plugin[name])
-        .forEach((plugin) => {
-            plugin[name].call(this)
-        })
+  this.plugins
+    .filter((plugin) => !!plugin[name])
+    .forEach((plugin) => {
+      plugin[name].call(this);
+    });
 }
 
 function orderedPluginFunction(name) {
-    this.plugins
-        .filter((plugin) => !!plugin[name])
-        .sort((pluginA, pluginB) => {
-            const a = pluginA[name].order || 0
-            const b = pluginB[name].order || 0
-            return a - b
-        })
-        .forEach((plugin) => {
-            plugin[name].fnc.call(this)
-        })
+  this.plugins
+    .filter((plugin) => !!plugin[name])
+    .sort((pluginA, pluginB) => {
+      const a = pluginA[name].order || 0;
+      const b = pluginB[name].order || 0;
+      return a - b;
+    })
+    .forEach((plugin) => {
+      plugin[name].fnc.call(this);
+    });
 }
 
 function setupInfiniteSlides() {
-    if (!this.config.options.isInfinite) {
-        if (hasInfiniteSlides.call(this)) {
-            if (!this.state.cloneSlideStore) {
-                this.state.cloneSlideStore = {
-                    start: document.createElement('div'),
-                    end: document.createElement('div')
-                }
-            }
+  if (!this.config.options.isInfinite || this.state.isDisabled) {
+    if (hasInfiniteSlides.call(this)) {
+      if (!this.state.cloneSlideStore) {
+        this.state.cloneSlideStore = {
+          start: document.createElement('div'),
+          end: document.createElement('div'),
+        };
+      }
 
-            let cloneCount =
-                this.elements.allSlides.filter((slide) =>
-                    slide.classList.contains(this.config.classes.slideClone)
-                ).length / 2
+      let cloneCount =
+        this.elements.allSlides.filter((slide) =>
+          slide.classList.contains(this.config.classes.slideClone),
+        ).length / 2;
 
-            const startClones = this.elements.allSlides.slice(0, cloneCount)
-            const endClones = this.elements.allSlides.slice(-cloneCount)
+      const startClones = this.elements.allSlides.slice(0, cloneCount);
+      const endClones = this.elements.allSlides.slice(-cloneCount);
 
-            this.state.cloneSlideStore.start.innerHTML = ''
-            this.state.cloneSlideStore.end.innerHTML = ''
+      this.state.cloneSlideStore.start.innerHTML = '';
+      this.state.cloneSlideStore.end.innerHTML = '';
 
-            startClones.forEach((clone) => {
-                this.state.cloneSlideStore.start.appendChild(clone)
-            })
-            endClones.forEach((clone) => {
-                this.state.cloneSlideStore.end.appendChild(clone)
-            })
+      startClones.forEach((clone) => {
+        this.state.cloneSlideStore.start.appendChild(clone);
+      });
+      endClones.forEach((clone) => {
+        this.state.cloneSlideStore.end.appendChild(clone);
+      });
 
-            this.elements.slides = Array.from(this.elements.track.children)
-            this.state.slideCount = this.elements.slides.length
-        }
-        return
+      this.elements.slides = Array.from(this.elements.track.children);
+      this.state.slideCount = this.elements.slides.length;
     }
+    return;
+  }
 
-    if (this.state.cloneSlideStore?.start.children.length) {
-        const startClones = Array.from(this.state.cloneSlideStore.start.children).reverse()
-        const endClones = Array.from(this.state.cloneSlideStore.end.children)
+  if (this.state.cloneSlideStore?.start.children.length) {
+    const startClones = Array.from(
+      this.state.cloneSlideStore.start.children,
+    ).reverse();
+    const endClones = Array.from(this.state.cloneSlideStore.end.children);
 
-        let insertBefore = this.elements.slides[0]
-        startClones.forEach((clone) => {
-            insertBefore = this.elements.track.insertBefore(clone, insertBefore)
-        })
+    let insertBefore = this.elements.slides[0];
+    startClones.forEach((clone) => {
+      insertBefore = this.elements.track.insertBefore(clone, insertBefore);
+    });
 
-        endClones.forEach((clone) => {
-            this.elements.track.appendChild(clone)
-        })
+    endClones.forEach((clone) => {
+      this.elements.track.appendChild(clone);
+    });
 
-        this.elements.allSlides = Array.from(this.elements.track.children)
-        this.state.totalSlideCount = this.elements.allSlides.length
-        return
-    }
+    this.elements.allSlides = Array.from(this.elements.track.children);
+    this.state.totalSlideCount = this.elements.allSlides.length;
+    return;
+  }
 
-    if (this.state.slideCount < this.config.slidesToShow) {
-        return
-    }
+  if (this.state.slideCount < this.config.slidesToShow) {
+    return;
+  }
 
-    const endSlides = this.elements.slides.slice(0, this.config.options.slidesToShow)
-    const startSlides = this.elements.slides.slice(-this.config.options.slidesToShow).reverse()
+  const endSlides = this.elements.slides.slice(
+    0,
+    this.config.options.slidesToShow,
+  );
+  const startSlides = this.elements.slides
+    .slice(-this.config.options.slidesToShow)
+    .reverse();
 
-    let insertBefore = this.elements.slides[0]
-    startSlides.forEach((slide) => {
-        const clone = cloneSlide.call(this, slide)
-        insertBefore = this.elements.track.insertBefore(clone, insertBefore)
-    })
+  let insertBefore = this.elements.slides[0];
+  startSlides.forEach((slide) => {
+    const clone = cloneSlide.call(this, slide);
+    clone.setAttribute('aria-hidden', true);
+    clone.setAttribute('tabindex', '-1');
+    insertBefore = this.elements.track.insertBefore(clone, insertBefore);
+  });
 
-    endSlides.forEach((slide) => {
-        const clone = cloneSlide.call(this, slide)
-        this.elements.track.appendChild(clone)
-    })
+  endSlides.forEach((slide) => {
+    const clone = cloneSlide.call(this, slide);
+    clone.setAttribute('aria-hidden', true);
+    clone.setAttribute('tabindex', '-1');
+    this.elements.track.appendChild(clone);
+  });
 
-    this.elements.allSlides = Array.from(this.elements.track.children)
-    this.state.totalSlideCount = this.elements.allSlides.length
+  this.elements.allSlides = Array.from(this.elements.track.children);
+  this.state.totalSlideCount = this.elements.allSlides.length;
 }
 
 function cloneSlide(slide) {
-    const slideClone = slide.cloneNode(true)
-    slideClone.classList.add(this.config.classes.slideClone)
-    return slideClone
+  const slideClone = slide.cloneNode(true);
+  slideClone.classList.add(this.config.classes.slideClone);
+  return slideClone;
 }
 
 function hasInfiniteSlides() {
-    return this.elements.allSlides[0].classList.contains(this.config.classes.slideClone)
+  return this.elements.allSlides[0]
+    ? this.elements.allSlides[0].classList.contains(
+        this.config.classes.slideClone,
+      )
+    : false;
 }

@@ -1,3 +1,11 @@
-export { Arrows } from './arrows'
-export { HorizontalSlide } from './horizontalSlide'
-export { Dots } from './dots'
+export { Arrows } from './arrows';
+export { HorizontalSlide } from './horizontalSlide';
+export { Dots } from './dots';
+export { Accessibility } from './accessibility';
+export { Autoplay } from './autoplay';
+export { Fade } from './fade';
+export { NavFor } from './navFor';
+export { Swipe } from './swipe';
+export { Classes } from './classes';
+export { hiddenTransition } from './hiddenTransition';
+export { Progress } from './progress';

@@ -34,6 +34,7 @@ export interface StateObj {
     cloneSlideStore: Object
     slidePositionOffset: Number
     scrollVsShowDiff: Number
+    slideChangeTrigger: String
 }
 
 export interface ElementObj {

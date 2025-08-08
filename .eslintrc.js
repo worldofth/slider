@@ -1,8 +1,8 @@
 module.exports = {
-    extends: ["eslint:recommended", "plugin:prettier/recommended"],
+    extends: ["eslint:recommended", "prettier"],
     parser: "@babel/eslint-parser",
     parserOptions: {
-        ecmaVersion: 10,
+        ecmaVersion: "latest",
         sourceType: "module",
     },
     env: {
@@ -12,8 +12,5 @@ module.exports = {
     },
     rules: {
         indent: ["error", 4, { SwitchCase: 1 }],
-    },
-    globals: {
-        loadjs: "readonly",
     },
 };
