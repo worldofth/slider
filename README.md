@@ -1,6 +1,6 @@
 # slider
 
-This Slider was built out of the frustration of the lack of readability, flexibility and maintainability of all third party slider options.
+This slider is built upon a plugin based architecture allowing you to compose behaviour together.
 
 ## Main features
 - Plugin based architecture
